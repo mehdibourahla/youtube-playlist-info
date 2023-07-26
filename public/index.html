@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>YouTube Playlist Info</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+    />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f6f8;
+      }
+      .content {
+        padding: 2em;
+        margin: auto;
+        max-width: 800px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+      }
+      .input-group {
+        margin-bottom: 1em;
+      }
+      #countdown {
+        font-weight: bold;
+        color: red;
+      }
+      #player {
+        margin-bottom: 1em;
+      }
+      th,
+      td {
+        text-align: center;
+      }
+      #playlistInfo {
+        overflow-x: scroll;
+        max-height: 600px;
+        overflow-y: scroll;
+      }
+      .table-cell {
+        word-wrap: break-word;
+        max-width: 200px;
+        overflow-x: hidden;
+        text-overflow: ellipsis;
+      }
+    </style>
+    <script src="https://www.youtube.com/iframe_api"></script>
+  </head>
+  <body>
+    <div class="content">
+      <h1 class="mb-4">YouTube Playlist Info</h1>
+      <div class="input-group">
+        <span class="input-group-text">API Key</span>
+        <input
+          type="text"
+          id="apiKey"
+          class="form-control"
+          placeholder="Enter API Key"
+        />
+      </div>
+      <div class="input-group">
+        <span class="input-group-text">Playlist ID</span>
+        <input
+          type="text"
+          id="playlistId"
+          class="form-control"
+          placeholder="Enter Playlist ID"
+        />
+        <button class="btn btn-primary" onclick="fetchPlaylistInfo()">
+          Get Playlist Info
+        </button>
+      </div>
+      <button class="btn btn-success mb-3" onclick="exportToCSV()">
+        Export to CSV
+      </button>
+      <div id="countdown" class="mb-3"></div>
+      <div
+        id="loading"
+        style="
+          display: none;
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          align-items: center;
+          justify-content: center;
+        "
+      >
+        <div class="spinner-border text-primary" role="status">
+          <span class="sr-only">Loading...</span>
+        </div>
+      </div>
+
+      <div id="player" class="mb-3"></div>
+      <!-- <table id="playlistInfo" class="table table-striped"></table> -->
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
