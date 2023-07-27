@@ -3,7 +3,7 @@ let playlistData = [];
 async function fetchPlaylistInfo() {
   const apiKey = document.getElementById("apiKey").value;
   const playlistId = document.getElementById("playlistId").value;
-  const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails,status&maxResults=25&playlistId=${playlistId}&key=${apiKey}`;
+  const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails,status&maxResults=50&playlistId=${playlistId}&key=${apiKey}`;
 
   // Show the loading animation
   document.getElementById("loading").style.display = "block";
@@ -26,36 +26,40 @@ async function fetchPlaylistInfo() {
     }
     const videoData = {
       videoId: videoId,
-      videoTitle: item.snippet.title,
-      videoDescription: item.snippet.description,
-      videoPublishedAt: item.snippet.publishedAt,
-      videoChannelId: item.snippet.channelId,
-      videoTags: item.snippet.tags ? item.snippet.tags.join(",") : "No Tags",
-      videoCategoryId: item.snippet.categoryId,
-      videoLiveBroadcastContent: item.snippet.liveBroadcastContent,
+      videoTitle: videoInfo.items[0].snippet.title,
+      videoDescription: videoInfo.items[0].snippet.description,
+      videoPublishedAt: videoInfo.items[0].snippet.publishedAt,
+      videoChannelId: videoInfo.items[0].snippet.channelId,
+      videoChannelTitle: videoInfo.items[0].snippet.channelTitle,
+      videoTags: videoInfo.items[0].snippet.tags
+        ? videoInfo.items[0].snippet.tags.join(",")
+        : "No Tags",
+      videoCategoryId: videoInfo.items[0].snippet.categoryId,
+      videoLiveBroadcastContent:
+        videoInfo.items[0].snippet.liveBroadcastContent,
       videoDefaultLanguage:
-        item.snippet.defaultLanguage || "No Default Language",
+        videoInfo.items[0].snippet.defaultLanguage || "No Default Language",
       videoDuration: videoInfo.items[0].contentDetails.duration,
-      videoDimension: videoInfo.items[0].contentDetails.dimension,
-      videoDefinition: videoInfo.items[0].contentDetails.definition,
       videoCaption: videoInfo.items[0].contentDetails.caption,
       videoLicensedContent: videoInfo.items[0].contentDetails.licensedContent,
-      videoProjection: videoInfo.items[0].contentDetails.projection,
-      videoAgeRestricted:
-        videoInfo.items[0].contentDetails.contentRating.ytRating ===
-        "ytAgeRestricted"
-          ? "Yes"
-          : "No",
-      videoMadeForKids: item.status.madeForKids ? "Yes" : "No",
+      videoEmbeddable: videoInfo.items[0].status.embeddable,
+      videoMadeForKids: videoInfo.items[0].status.madeForKids ? "Yes" : "No",
       videoTranscript: videoTranscript,
     };
+
+    if (!videoData.videoEmbeddable) {
+      const errorElement = document.getElementById("error");
+      errorElement.textContent = `The video with ID "${videoData.videoId}" and title "${videoData.videoTitle}" is not embeddable. Please remove it from the playlist.`;
+      errorElement.style.display = "block";
+      return; // Exit the function if a non-embeddable video is found
+    }
 
     playlistData.push(videoData);
   }
   // Hide the loading animation
   document.getElementById("loading").style.display = "none";
 
-  //   displayPlaylistInfo();
+  displayPlaylistInfo();
   loadPlaylistPlayer();
 }
 
@@ -75,7 +79,15 @@ function displayPlaylistInfo() {
   // create table headers
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
-  Object.keys(playlistData[0]).forEach((key) => {
+
+  const headers = [
+    "videoId",
+    "videoTitle",
+    "videoChannelTitle",
+    "videoDuration",
+  ];
+
+  headers.forEach((key) => {
     const th = document.createElement("th");
     th.textContent = key.replace(/([a-z])([A-Z])/g, "$1 $2");
     th.className = "table-cell";
@@ -88,7 +100,8 @@ function displayPlaylistInfo() {
   const tbody = document.createElement("tbody");
   playlistData.forEach((item) => {
     const row = document.createElement("tr");
-    for (let key in item) {
+    for (let key of headers) {
+      // Use the same headers for creating the cells
       const td = document.createElement("td");
       td.textContent = item[key];
       td.className = "table-cell";
@@ -167,9 +180,25 @@ function loadPlaylistPlayer() {
 
 // The API will call this function when the video player is ready.
 function onPlayerReady(event) {
-  // Start playing the first video in the playlist
+  // Start playing the first video in the playlist after a 30 second delay
   if (playlistData.length > 0) {
-    event.target.loadVideoById(playlistData[0].videoId);
+    // Set delay time before first video in milliseconds (1000 ms = 1 sec)
+    let delayTime = 30000; // 30 seconds
+    let countdownTime = delayTime / 1000; // convert to seconds for display
+    const countdownElement = document.getElementById("countdown");
+
+    const intervalId = setInterval(() => {
+      countdownElement.innerText = `First video will start in ${countdownTime} seconds...`;
+      countdownTime -= 1;
+      if (countdownTime < 0) {
+        clearInterval(intervalId);
+        countdownElement.innerText = "";
+      }
+    }, 1000);
+
+    setTimeout(() => {
+      event.target.loadVideoById(playlistData[0].videoId);
+    }, delayTime);
   }
 }
 
