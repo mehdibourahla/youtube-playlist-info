@@ -157,6 +157,8 @@ function fetchTranscript(videoId) {
         "There has been a problem with your fetch operation:",
         error
       );
+      // Returning null when there's an error
+      return null;
     });
 }
 
