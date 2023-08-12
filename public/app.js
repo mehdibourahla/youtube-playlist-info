@@ -3,59 +3,68 @@ let playlistData = [];
 async function fetchPlaylistInfo() {
   const apiKey = document.getElementById("apiKey").value;
   const playlistId = document.getElementById("playlistId").value;
-  const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails,status&maxResults=50&playlistId=${playlistId}&key=${apiKey}`;
 
   // Show the loading animation
   document.getElementById("loading").style.display = "block";
 
-  const response = await fetch(url);
-  const data = await response.json();
-
   playlistData = []; // clear previous data
+  let nextPageToken = "";
 
-  for (let item of data.items) {
-    const videoId = item.snippet.resourceId.videoId;
-    const videoInfo = await fetchVideoInfo(videoId, apiKey);
-    let videoTranscriptResponse = await fetchTranscript(videoId);
-    let videoTranscript = "Not available";
-    if (videoTranscriptResponse) {
-      // Concatenate all text fields into a single string
-      videoTranscript = videoTranscriptResponse
-        .map((line) => line.text)
-        .join(" ");
+  do {
+    const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails,status&maxResults=50&playlistId=${playlistId}&key=${apiKey}${
+      nextPageToken ? "&pageToken=" + nextPageToken : ""
+    }`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    for (let item of data.items) {
+      const videoId = item.snippet.resourceId.videoId;
+      const videoInfo = await fetchVideoInfo(videoId, apiKey);
+      let videoTranscriptResponse = await fetchTranscript(videoId);
+      let videoTranscript = "Not available";
+      if (videoTranscriptResponse) {
+        videoTranscript = videoTranscriptResponse
+          .map((line) => line.text)
+          .join(" ");
+      }
+      const videoData = {
+        videoId: videoId,
+        videoTitle: videoInfo.items[0].snippet.title,
+        videoDescription: videoInfo.items[0].snippet.description,
+        videoPublishedAt: videoInfo.items[0].snippet.publishedAt,
+        videoChannelId: videoInfo.items[0].snippet.channelId,
+        videoChannelTitle: videoInfo.items[0].snippet.channelTitle,
+        videoTags: videoInfo.items[0].snippet.tags
+          ? videoInfo.items[0].snippet.tags.join(",")
+          : "No Tags",
+        videoCategoryId: videoInfo.items[0].snippet.categoryId,
+        videoLiveBroadcastContent:
+          videoInfo.items[0].snippet.liveBroadcastContent,
+        videoDefaultLanguage:
+          videoInfo.items[0].snippet.defaultLanguage || "No Default Language",
+        videoDuration: videoInfo.items[0].contentDetails.duration,
+        videoCaption: videoInfo.items[0].contentDetails.caption,
+        videoLicensedContent: videoInfo.items[0].contentDetails.licensedContent,
+        videoEmbeddable: videoInfo.items[0].status.embeddable,
+        videoMadeForKids: videoInfo.items[0].status.madeForKids ? "Yes" : "No",
+        videoTranscript: videoTranscript,
+      };
+
+      if (!videoData.videoEmbeddable) {
+        const errorElement = document.getElementById("error");
+        errorElement.textContent = `The video with ID "${videoData.videoId}" and title "${videoData.videoTitle}" is not embeddable. Please remove it from the playlist.`;
+        errorElement.style.display = "block";
+        return; // Exit the function if a non-embeddable video is found
+      }
+
+      playlistData.push(videoData);
     }
-    const videoData = {
-      videoId: videoId,
-      videoTitle: videoInfo.items[0].snippet.title,
-      videoDescription: videoInfo.items[0].snippet.description,
-      videoPublishedAt: videoInfo.items[0].snippet.publishedAt,
-      videoChannelId: videoInfo.items[0].snippet.channelId,
-      videoChannelTitle: videoInfo.items[0].snippet.channelTitle,
-      videoTags: videoInfo.items[0].snippet.tags
-        ? videoInfo.items[0].snippet.tags.join(",")
-        : "No Tags",
-      videoCategoryId: videoInfo.items[0].snippet.categoryId,
-      videoLiveBroadcastContent:
-        videoInfo.items[0].snippet.liveBroadcastContent,
-      videoDefaultLanguage:
-        videoInfo.items[0].snippet.defaultLanguage || "No Default Language",
-      videoDuration: videoInfo.items[0].contentDetails.duration,
-      videoCaption: videoInfo.items[0].contentDetails.caption,
-      videoLicensedContent: videoInfo.items[0].contentDetails.licensedContent,
-      videoEmbeddable: videoInfo.items[0].status.embeddable,
-      videoMadeForKids: videoInfo.items[0].status.madeForKids ? "Yes" : "No",
-      videoTranscript: videoTranscript,
-    };
 
-    if (!videoData.videoEmbeddable) {
-      const errorElement = document.getElementById("error");
-      errorElement.textContent = `The video with ID "${videoData.videoId}" and title "${videoData.videoTitle}" is not embeddable. Please remove it from the playlist.`;
-      errorElement.style.display = "block";
-      return; // Exit the function if a non-embeddable video is found
-    }
+    // Move to the next page of results
+    nextPageToken = data.nextPageToken;
+  } while (nextPageToken);
 
-    playlistData.push(videoData);
-  }
   // Hide the loading animation
   document.getElementById("loading").style.display = "none";
 
